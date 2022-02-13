@@ -3,13 +3,11 @@
 #include "freq.h"
 #include "melody.h"
 
-#define SILENT
-
 #define EMPTY_NOTE   -1
 
 int notes_size = sizeof(notes) / sizeof(notes[0]);
 int notes_index = 0;
-int volume = 1;
+int volume = 0;
 int note = EMPTY_NOTE;
 
 void display() {
@@ -53,13 +51,11 @@ void loop() {
     display();
     int freq = frequencies[note];
     if (++notes_index >= notes_size) notes_index = 0;
-#ifndef SILENT
     M5.Speaker.tone(freq);
-#endif
-    M5.Speaker.setVolume(volume);
   }
   if (M5.BtnB.wasPressed()) {
     volume = (volume + 1) % 11;
+    M5.Speaker.setVolume(volume);
     display();
   }
   if(M5.BtnC.wasPressed()) {
