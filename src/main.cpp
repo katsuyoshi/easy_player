@@ -1,14 +1,23 @@
 #include <Arduino.h>
-#include <M5Stack.h>
+#if defined(ARDUINO_M5STACK_Core2)
+  #include <M5Core2.h>
+#elif defined( ARDUINO_M5Stack_Core_ESP32 )
+  #include <M5Stack.h>
+#endif
 #include "freq.h"
 #include "melody.h"
 
-#define EMPTY_NOTE   -1
+#define REST_NOTE   128
+
+#define A_PIN   2   
+#define B_PIN   26
+#define C_PIN   5
 
 int notes_size = sizeof(notes) / sizeof(notes[0]);
 int notes_index = 0;
 int volume = 0;
-int note = EMPTY_NOTE;
+int note = REST_NOTE;
+int inp_pins[] = {A_PIN, B_PIN, C_PIN};
 
 void display() {
   uint32_t color = GREEN; //GREENYELLOW;
@@ -37,30 +46,66 @@ void display() {
 
 }
 
+struct io_state {
+  unsigned ex_value:1;
+  unsigned value:1;
+  unsigned changed:1;
+};
+
+io_state inp_states[3];
+
+void read_io(bool update = true) {
+  if (update) {
+    M5.update();
+  }
+  for (int i = 0; i < 3; i++) {
+    inp_states[i].ex_value = inp_states[i].value;
+    inp_states[i].value = digitalRead(inp_pins[i]);
+    inp_states[i].changed = inp_states[i].value ^ inp_states[i].ex_value;
+  }
+}
+
+void setup_io() {
+  pinMode(A_PIN, INPUT_PULLUP);
+  pinMode(B_PIN, INPUT_PULLUP);
+  pinMode(C_PIN, INPUT_PULLUP);
+  read_io();
+  read_io(false);
+}
+
 void setup() {
   M5.begin();
   M5.Lcd.setTextSize(3);
   M5.Speaker.setVolume(volume);
+  setup_io();
   display();
 }
 
+bool io_raised(io_state state) {
+  return state.changed && state.value;
+}
+
 void loop() {
-  M5.update();
-  if(M5.BtnA.wasPressed()) {
+  read_io();
+  if(M5.BtnA.wasPressed() || io_raised(inp_states[0])) {
     note = notes[notes_index];
     display();
-    int freq = frequencies[note];
+    if (note == REST_NOTE) {
+      M5.Speaker.mute();
+    } else {
+      int freq = frequencies[note];
+      M5.Speaker.tone(freq);
+    }
     if (++notes_index >= notes_size) notes_index = 0;
-    M5.Speaker.tone(freq);
   }
-  if (M5.BtnB.wasPressed()) {
+  if (M5.BtnB.wasPressed() || io_raised(inp_states[1])) {
     volume = (volume + 1) % 11;
     M5.Speaker.setVolume(volume);
     display();
   }
-  if(M5.BtnC.wasPressed()) {
+  if(M5.BtnC.wasPressed() || io_raised(inp_states[2])) {
     M5.Speaker.mute();
-    note = EMPTY_NOTE;
+    note = REST_NOTE;
     display();
   }
 }

@@ -20,6 +20,7 @@ def define_frequenceies
     @frequencies << freq
     @notes << "#{keys[key]}#{oct}"
   end
+  @notes << 'R'
   a = <<EOS
 #ifndef _FREQ_H
 #define _FREQ_H
@@ -43,7 +44,7 @@ end
 
 def define_melody melody
   oct = "4"
-  keys = melody.scan(/[ABCDEFG]#?\-?\d?/).map{|k| m = /(\-?\d)/ =~ k; oct = $1 if $1; m ? k : "#{k}#{oct}"}
+  keys = melody.scan(/[ABCDEFG]#?\-?\d?|R/).map{|k| m = /(\-?\d)/ =~ k; oct = $1 if $1; m ? k : k == 'R' ? k : "#{k}#{oct}"}
   a = <<EOS
 #ifndef _MELODY_H
 #define _MELODY_H
@@ -61,6 +62,15 @@ end
 
 define_frequenceies
 
-zousan = "F4DC FDC FGAC5A4AGFG C5CA4 D5CA4F GADCF"
+zousan = "F4DCR FDCR FGAC5A4AGFG C5CA4 D5CA4F GADCFR"
+edelweiss = <<EOS
+E4G D5 CG4 FR EE
+EFG A GR EG D5 C
+G4 FR EG GAB C5 CR
+DRG4G BAG EG C5R A4C5
+DC B4 GR EG D5 CG4
+FR EG GAB C5 CR
+EOS
 
-define_melody zousan
+#define_melody zousan
+define_melody edelweiss
